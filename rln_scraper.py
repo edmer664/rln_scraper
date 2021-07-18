@@ -4,6 +4,7 @@ import requests
 from bs4 import *
 from os import makedirs,getcwd,path
 import tkinter as tk
+from tkinter import ttk
 
 #*GUI
 class MainApp(tk.Frame):
@@ -80,46 +81,56 @@ class MainApp(tk.Frame):
             text="Quit",
             padx=5,
             pady=5
-        ).pack(side="left")
-
-    def submit(self):
-        self.popup = tk.Toplevel()
+        ).pack(side="top")
+    def progress_bar(self):
+        try:
+            self.progress.destroy()
+            self.label_pop.destroy()
+        except:
+            pass
         self.label_pop = tk.Label(
-            self.popup,
+            self,
             text="Processing",
             font=self.body_font,
             width=20
             )
         self.label_pop.pack(side="top")
+        self.progress = ttk.Progressbar(self,orient='horizontal',length=100,mode='determinate')
+        self.progress.pack(side="top")
+    def submit(self):
 
 
         #? Validates input
         #* catch novel title
         try:
-            input_title = self.title_form.get('1.0',"end-1c").strip()
-            input_chapters = int(self.chapters_form.get('1.0',"end-1c"))
+            self.input_title = self.title_form.get('1.0',"end-1c").strip()
+            self.input_chapters = int(self.chapters_form.get('1.0',"end-1c"))
         except:
             raise Exception("Please enter a valid input.")
-        if input_title == "" or input_chapters == 0:
+        if self.input_title == "" or self.input_chapters == 0:
             raise Exception("Please enter a valid input.")
 
+        self.progress_bar()
+        root.update()
 
         #* Url format
-        input_title = input_title.replace(" ","-")
+        self.input_title = self.input_title.replace(" ","-")
 
         #*make directory
         try:
-            makedirs(f'.\\{input_title}')
+            makedirs(f'.\\{self.input_title}')
         except:
             print("Directory already existing")
             pass
-        url = f"https://www.readlightnovel.org/{input_title}/"
+        url = f"https://www.readlightnovel.org/{self.input_title}/"
 
         #* iterate chapters
-        for chapter in range(1,input_chapters + 1):
+        for chapter in range(1,self.input_chapters + 1):
             currentURL = url + f"chapter-{chapter}"
             #*get response
             response = requests.get(currentURL)
+            if response.status_code == 200:
+                print( f"Chapter {chapter} retrieved sucessfully")
             soup = BeautifulSoup(response.text,'html.parser')
             text = soup.select(".desc")
 
@@ -129,10 +140,16 @@ class MainApp(tk.Frame):
                 #!print(char.getText())
                 content += char.getText()
             try:
-                with open(path.join(f"{getcwd()}",f"{input_title}",f"{input_title}-chapter{chapter}.txt"),'x',encoding="utf-8") as file:
+                with open(path.join(f"{getcwd()}",f"{self.input_title}",f"{self.input_title}-chapter{chapter}.txt"),'x',encoding="utf-8") as file:
                     file.write(content)
             except:
-                print(f'File: "{input_title}-chapter{chapter}.txt" already exist')
+                errorMessage = f'File: "{self.input_title}-chapter{chapter}.txt" already exist'
+                self.error = tk.Label(self,text=errorMessage)
+                print(errorMessage)
+            self.progress["value"] += 100/self.input_chapters
+            root.update()
+        self.label_pop["text"] = "Done"
+
 
 
 root = tk.Tk()
