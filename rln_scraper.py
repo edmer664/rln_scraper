@@ -5,6 +5,7 @@ from bs4 import *
 from os import makedirs,getcwd,path
 import tkinter as tk
 from tkinter import ttk
+import subprocess
 
 #*GUI
 class MainApp(tk.Frame):
@@ -120,8 +121,16 @@ class MainApp(tk.Frame):
         try:
             makedirs(f'.\\{self.input_title}')
         except:
-            print("Directory already existing")
-            pass
+            errorMessage = "Directory already existing"
+            try:
+                self.error.destroy()
+                root.update()
+            except:
+                pass
+            self.error = tk.Label(self,text=errorMessage)
+            self.error.pack()
+            print(errorMessage)
+            
         url = f"https://www.readlightnovel.org/{self.input_title}/"
 
         #* iterate chapters
@@ -144,11 +153,19 @@ class MainApp(tk.Frame):
                     file.write(content)
             except:
                 errorMessage = f'File: "{self.input_title}-chapter{chapter}.txt" already exist'
+                try:
+                    self.error.destroy()
+                    root.update()
+                except:
+                    pass
                 self.error = tk.Label(self,text=errorMessage)
+                self.error.pack()
                 print(errorMessage)
             self.progress["value"] += 100/self.input_chapters
             root.update()
         self.label_pop["text"] = "Done"
+        directory = path.join(f"{getcwd()}",f"{self.input_title}")
+        subprocess.Popen(f'explorer "{directory}"')
 
 
 
