@@ -9,15 +9,21 @@ from ebooklib import epub
 
 #*GUI
 class MainApp(tk.Frame):
+
+    #? GUI fonts
     header_font=("sans-serif",24)
     body_font=("sans-serif",16)
+
+
     def __init__(self,master=None):
         super().__init__(master)
         self.pack(side="top")
         self.header_widgets()
         self.form_widgets()     
     
+
     def header_widgets(self):
+        #? Header widgets
         self.load = tk.PhotoImage(file="./rln.png")
         self.logo = tk.Label(self,image=self.load).pack(side="top")
         self.mainTitle = tk.Label(
@@ -28,6 +34,8 @@ class MainApp(tk.Frame):
             ).pack(
                 side="top"
                 )
+
+        
     def form_widgets(self):
         self.label_title = tk.Label(
             self,
@@ -83,6 +91,8 @@ class MainApp(tk.Frame):
             padx=5,
             pady=5
         ).pack(side="top")
+
+    
     def progress_bar(self):
         try:
             self.progress.destroy()
@@ -96,13 +106,18 @@ class MainApp(tk.Frame):
             width=20
             )
         self.label_pop.pack(side="top")
-        self.progress = ttk.Progressbar(self,orient='horizontal',length=100,mode='determinate')
+        self.progress = ttk.Progressbar(
+            self,orient='horizontal',
+            length=100,mode='determinate'
+            )
         self.progress.pack(side="top")
+
+
     def submit(self):
 
 
         #? Validates input
-        #* catch novel title
+        #? novel title
         try:
             self.input_title = self.title_form.get('1.0',"end-1c").strip()
             self.input_chapters = int(self.chapters_form.get('1.0',"end-1c"))
@@ -130,7 +145,8 @@ class MainApp(tk.Frame):
             self.error = tk.Label(self,text=errorMessage)
             self.error.pack()
             print(errorMessage)
-            
+
+        #? initialize book class
         url = f"https://www.readlightnovel.org/{self.input_title}/"
         book = epub.EpubBook()
         book.set_title(self.input_title)
@@ -151,25 +167,33 @@ class MainApp(tk.Frame):
         #*compiling to epub
             text ="<html> <body>" + str(text) + "</body></html>"
             c1 = epub.EpubHtml(title=f"Chapter {chapter}",file_name=f"temp_{chapter}.xhtml",lang="en",content=text,direction=book.direction)
+        #? book.spine for ebook arrangement
             book.spine.append(c1)
             chaps.append(c1)
+        #? progress_bar animation
             self.progress["value"] += 97/self.input_chapters
             root.update()
+        #? adding chapters to book class
         for curr_chap in chaps:
             book.add_item(curr_chap)
             self.progress["value"] += 3/len(chaps)
             root.update()
+        #? add navigation to book
         book.spine.insert(0,'nav')
         book.toc = tuple(chaps)
+
         book.add_item(epub.EpubNcx())
         book.add_item(epub.EpubNav())
+
+        #? finalizing output 
         epub.write_epub(path.join(f"{getcwd()}",f"{self.input_title}",f"{self.input_title}.epub"),book)
         self.label_pop["text"] = "Done"
         directory = path.join(f"{getcwd()}",f"{self.input_title}")
+        #? opens file explorer after file creation
         subprocess.Popen(f'explorer "{directory}"')
 
 
-#?####################################################################################################
+#? Main 
 root = tk.Tk()
 root.title("RLN Scarper")
 app = MainApp(master=root)
