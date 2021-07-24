@@ -1,11 +1,11 @@
 #! python3
-from re import I
 import requests
 from bs4 import *
 from os import makedirs,getcwd,path
 import tkinter as tk
 from tkinter import ttk
 import subprocess
+from ebooklib import epub
 
 #*GUI
 class MainApp(tk.Frame):
@@ -132,8 +132,12 @@ class MainApp(tk.Frame):
             print(errorMessage)
             
         url = f"https://www.readlightnovel.org/{self.input_title}/"
-
+        book = epub.EpubBook()
+        book.set_title(self.input_title)
+        book.set_language('en')
+        book.add_author("readlightnovel.org")
         #* iterate chapters
+        chaps = []
         for chapter in range(1,self.input_chapters + 1):
             currentURL = url + f"chapter-{chapter}"
             #*get response
@@ -144,31 +148,28 @@ class MainApp(tk.Frame):
             text = soup.select(".desc")
 
         #* bind all files    
-            content = ""
-            for char in text:
-                #!print(char.getText())
-                content += char.getText()
-            try:
-                with open(path.join(f"{getcwd()}",f"{self.input_title}",f"{self.input_title}-chapter{chapter}.txt"),'x',encoding="utf-8") as file:
-                    file.write(content)
-            except:
-                errorMessage = f'File: "{self.input_title}-chapter{chapter}.txt" already exist'
-                try:
-                    self.error.destroy()
-                    root.update()
-                except:
-                    pass
-                self.error = tk.Label(self,text=errorMessage)
-                self.error.pack()
-                print(errorMessage)
-            self.progress["value"] += 100/self.input_chapters
+        #*compiling to epub
+            text ="<html> <body>" + str(text) + "</body></html>"
+            c1 = epub.EpubHtml(title=f"Chapter {chapter}",file_name=f"temp_{chapter}.xhtml",lang="en",content=text,direction=book.direction)
+            book.spine.append(c1)
+            chaps.append(c1)
+            self.progress["value"] += 97/self.input_chapters
             root.update()
+        for curr_chap in chaps:
+            book.add_item(curr_chap)
+            self.progress["value"] += 3/len(chaps)
+            root.update()
+        book.spine.insert(0,'nav')
+        book.toc = tuple(chaps)
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+        epub.write_epub(path.join(f"{getcwd()}",f"{self.input_title}",f"{self.input_title}.epub"),book)
         self.label_pop["text"] = "Done"
         directory = path.join(f"{getcwd()}",f"{self.input_title}")
         subprocess.Popen(f'explorer "{directory}"')
 
 
-
+#?####################################################################################################
 root = tk.Tk()
 root.title("RLN Scarper")
 app = MainApp(master=root)
